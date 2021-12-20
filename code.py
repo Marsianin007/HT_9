@@ -130,33 +130,28 @@ def get_money(user_name):
     if sum_to_get < 10 or sum_to_get % 10 != 0:
         print("Введіть коректну сумму:\n")
         get_money(user_name)
-
+    sum_to_get_copy = sum_to_get
     user_balance = cur.execute('SELECT balance FROM users WHERE username == ?', (user_name,)).fetchone()
     user_balance = int(user_balance[0])
     if sum_to_get > int(user_balance):
         print("Недостятньо коштів...")
         start_menu(user_name)
 
-    new_balance = int(user_balance) - sum_to_get
-    cur.execute('UPDATE users SET balance == ? WHERE username == ?', (new_balance, user_name))
-
     time_local = time.localtime()
     time_string = time.strftime("%m/%d/%Y, %H:%M:%S", time_local)
     cur.execute('INSERT INTO {} VALUES (?, ?) '.format(str_name_transactions), (time_string, "down_balance",))
     base.commit()
 
-    banknotes_to_get(sum_to_get, user_name)
+    banknotes_to_get(sum_to_get, user_name, sum_to_get_copy)
 
 
-def banknotes_to_get(sum_to_get, user_name):
+def banknotes_to_get(sum_to_get, user_name, sum_to_get_copy):
     copy_sum_to_get = sum_to_get
     banknotes_dict = {}
     tmp = cur.execute('SELECT * FROM banknotes')
     for i in tmp:
         temp_dict = {i[0]: i[1]}
         banknotes_dict.update(temp_dict)
-
-
     list = [1000, 500, 200, 100, 50, 20, 10]
     uah_10 = uah_20 = uah_50 = uah_100 = uah_200 = uah_500 = uah_1000 = 0
     print(sum_to_get)
@@ -204,8 +199,12 @@ def banknotes_to_get(sum_to_get, user_name):
     sum_to_get, uah_10 = exit_from_func(sum_to_get, 10, uah_10)
 
     if sum_to_get != 0:
-        greedy_method(copy_sum_to_get, user_name)
+        greedy_method(copy_sum_to_get, user_name, sum_to_get_copy)
     else:
+        user_balance = cur.execute('SELECT balance FROM users WHERE username == ?', (user_name,)).fetchone()
+        user_balance = int(user_balance[0])
+        new_balance = int(user_balance) - copy_sum_to_get
+        cur.execute('UPDATE users SET balance == ? WHERE username == ?', (new_balance, user_name))
         banknotes_list = []
         cur.execute('DELETE  FROM banknotes')
         base.commit()
@@ -216,8 +215,6 @@ def banknotes_to_get(sum_to_get, user_name):
             banknotes_list.append(tmp)
         cur.executemany('INSERT INTO banknotes VALUES (?, ?)', (banknotes_list))
         base.commit()
-
-
         if uah_1000 != 0: print("1000 - " + str(uah_1000))
         if uah_500 != 0: print("500 - " + str(uah_500))
         if uah_200 != 0: print("200 - " + str(uah_200))
@@ -225,8 +222,6 @@ def banknotes_to_get(sum_to_get, user_name):
         if uah_50 != 0: print("50 - " + str(uah_50))
         if uah_20 != 0: print("20 - " + str(uah_20))
         if uah_10 != 0: print("10 - " + str(uah_10))
-
-
         start_menu(user_name)
 
 
@@ -251,7 +246,7 @@ def exit_from_func(sum_to_get, nominal, variable):
         return sum_to_get, variable
 
 
-def greedy_method(sum_to_get, user_name):
+def greedy_method(sum_to_get, user_name, sum_to_get_copy):
     list = [1000, 500, 200, 100, 50, 20, 10]
     banknotes_dict = {}
     tmp = cur.execute('SELECT * FROM banknotes')
@@ -294,25 +289,29 @@ def greedy_method(sum_to_get, user_name):
         uah_10 += 1
         banknotes_dict[10] = int(banknotes_dict[10]) - 1
         sum_to_get -= 10
+    if sum_to_get == 0:
+        user_balance = cur.execute('SELECT balance FROM users WHERE username == ?', (user_name,)).fetchone()
+        user_balance = int(user_balance[0])
+        new_balance = int(user_balance) - sum_to_get_copy
+        cur.execute('UPDATE users SET balance == ? WHERE username == ?', (new_balance, user_name))
+        banknotes_list = []
+        cur.execute('DELETE  FROM banknotes')
+        base.commit()
+        for i in list:
+            tmp = []
+            tmp.append(i)
+            tmp.append(banknotes_dict[i])
+            banknotes_list.append(tmp)
+        cur.executemany('INSERT INTO banknotes VALUES (?, ?)', (banknotes_list))
+        base.commit()
 
-    banknotes_list = []
-    cur.execute('DELETE  FROM banknotes')
-    base.commit()
-    for i in list:
-        tmp = []
-        tmp.append(i)
-        tmp.append(banknotes_dict[i])
-        banknotes_list.append(tmp)
-    cur.executemany('INSERT INTO banknotes VALUES (?, ?)', (banknotes_list))
-    base.commit()
-
-    if uah_1000 != 0: print("1000 - " + str(uah_1000))
-    if uah_500 != 0: print("500 - " + str(uah_500))
-    if uah_200 != 0: print("200 - " + str(uah_200))
-    if uah_100 != 0: print("100 - " + str(uah_100))
-    if uah_50 != 0: print("50 - " + str(uah_50))
-    if uah_20 != 0: print("20 - " + str(uah_20))
-    if uah_10 != 0: print("10 - " + str(uah_10))
+        if uah_1000 != 0: print("1000 - " + str(uah_1000))
+        if uah_500 != 0: print("500 - " + str(uah_500))
+        if uah_200 != 0: print("200 - " + str(uah_200))
+        if uah_100 != 0: print("100 - " + str(uah_100))
+        if uah_50 != 0: print("50 - " + str(uah_50))
+        if uah_20 != 0: print("20 - " + str(uah_20))
+        if uah_10 != 0: print("10 - " + str(uah_10))
 
     value = 0
     list_of_values = cur.execute('SELECT * FROM banknotes')
@@ -321,6 +320,9 @@ def greedy_method(sum_to_get, user_name):
 
     if sum_to_get != 0 and value != 0:
         print("Нажаль банкомат не може видасти потрібну сумму, спробуйте змінити сумму\n")
+        num = input("Якщо бажаєте вийти, натисніть '1', інакше будь який символ: ")
+        if num == "1":
+            start_menu(user_name)
         get_money(user_name)
 
     elif sum_to_get != 0 and value == 0:
